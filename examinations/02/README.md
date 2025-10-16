@@ -70,9 +70,7 @@ substituted for the actual values, you should be able to do
             "discovered_interpreter_python": "/usr/bin/python3.12"
         },
         "changed": false,
-        "ping": "pong"
-    }
-    dbserver | SUCCESS => {
+        "ping": "pong"    dbserver | SUCCESS => {
         "ansible_facts": {
             "discovered_interpreter_python": "/usr/bin/python3.12"
         },
@@ -112,9 +110,13 @@ incompatibilities.
 
 What happens if you run `ansible-inventory --list` in the directory you created above?
 
+:: You get your servers listed, with hostname, ip addr. and the path to the ssh key
+
 ## QUESTION B
 
 What happens if you run `ansible-inventory --graph` in the directory you created above?
+
+:: A more structured "Tree view" over the ansible structure
 
 ## QUESTION C
 
@@ -131,6 +133,8 @@ Now run:
 Study the output of this command.
 
 What does the `ansible_connection=local` part mean?
+
+Connecting to the local machine
 
 ## BONUS QUESTION
 
@@ -153,3 +157,5 @@ In your Ansible working directory where the `ansible.cfg' is, run
 You should get a pager displaying all available configuration values. How does it differ
 from when you run the same command in your usual home directory?
 
+:: When dump is run in the home it shows the conf from the local ansible
+when run in a ansible dir, with a .cfg, it shows the configs for the specified directory
