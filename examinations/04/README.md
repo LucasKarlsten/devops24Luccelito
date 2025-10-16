@@ -53,10 +53,13 @@ module.
 
 How can we make the web server start with an addition of just one line to the playbook above?
 
+:: By adding state: started at the end of the enginx is started, the webpage starts responding
 # QUESTION B
 
 You make have noted that the `become: true` statement has moved from a specific task to the beginning
 of the playbook, and is on the same indentation level as `tasks:`.
+
+:: When you cahnge the location of the become: true, it changes the way it executes, if it is placed at the top, you will run the entire playbook as root, whereas if you place it within a task, it will run that specific task as root, which is the best practice+
 
 What does this accomplish?
 
@@ -72,8 +75,13 @@ log in to the machine and make sure that there are no `nginx` processes running.
 
 Why did we change the order of the tasks in the `04-uninstall-webserver.yml` playbook?
 
+:: We need to stop the nginx service before unistalling, to make sure that it doesnt still run in the background, if we were to do it the other way around, it would uninstall, before stopping the service itself
+
 # BONUS QUESTION
 
 Consider the output from the tasks above, and what we were actually doing on the machine.
 
 What is a good naming convention for tasks? (What SHOULD we write in the `name:` field`?)
+
+:: What the task is acomplishing, for example DOWNLOADING NGINX, UNINSTALL NGINX or STOP NGINX SERVICE
+generally being descriptive of what the task is doing is the best practice 
