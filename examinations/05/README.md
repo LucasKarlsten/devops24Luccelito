@@ -76,6 +76,11 @@ What does the output look like the first time you run this playbook?
 
 What does the output look like the second time you run this playbook?
 
+:: "changed": true. Paths (dest, temp src) Ownership/permissions (owner, group, mode)
+Possibly size, checksum, backup_file (when backup: true)
+
+:: Second time the output will just show that the task is ok, and no changes are made
+
 # QUESTION B
 
 Even if we have copied the configuration to the right place, we still do not have a working https service
@@ -114,12 +119,20 @@ Again, these addresses are just examples, make sure you use the IP of the actual
 Note also that `curl` needs the `--insecure` option to establish a connection to a HTTPS server with
 a self signed certificate.
 
+:: 
+
 # QUESTION C
 
 What is the disadvantage of having a task that _always_ makes sure a service is restarted, even if there is
 no configuration change?
 
+:: It breaks the idempotence, since the service will restart everytime the playbook is executed, it will always show a change
+
 # BONUS QUESTION
 
 There are at least two _other_ modules, in addition to the `ansible.builtin.service` module that can restart
 a `systemd` service with Ansible. Which modules are they?
+
+:: ansible.builtin.systemd
+and 
+ansible.builtin.command

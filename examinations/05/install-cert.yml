@@ -1,6 +1,6 @@
 ---
 - name: Set up self-signed certificates for HTTPS
-  hosts: webserver
+  hosts: web
   become: true
   tasks:
     - name: Ensure the /etc/pki/nginx directory exists
@@ -9,7 +9,14 @@
         state: directory
         mode: "0755"
         owner: root
-
+   
+    - name: Copy file with owner and permissions
+      ansible.builtin.copy:
+       src: /home/luccelito/AutomatiseringMCM/devops24Luccelito/examinations/05/files/https.conf 
+       dest: /etc/nginx/conf.d/https.conf 
+       owner: root 
+       group: root 
+    
     - name: Ensure we have a /etc/pkig/nginx/private directory
       ansible.builtin.file:
         path: /etc/pki/nginx/private
