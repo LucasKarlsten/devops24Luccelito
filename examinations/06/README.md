@@ -167,6 +167,10 @@ There are several ways to accomplish this, and there is no _best_ way to do this
 
 Is this a good way to handle these types of conditionals? What do you think?
 
+:: For a small lab/playbook: yes, it’s perfectly fine. It’s explicit, easy to read, and shows clearly why a reload happens.
+
+For real projects / larger playbooks: it doesn’t scale well. Every time you add a new task that should trigger a reload, you must remember to update that when: expression. 
+
 # BONUS QUESTION
 
 Imagine you had a playbook with hundreds of tasks to be done on several hosts, and each one of these tasks
@@ -177,3 +181,5 @@ would you like the flow to work?
 
 Describe in simple terms what your preferred task flow would look like, not necessarily implemented in
 Ansible, but in general terms.
+
+:: Stage and validate everything first, combine all changes into one reload/ restart per service and roll the updates out gradualy and avoid as much downtime as possible
