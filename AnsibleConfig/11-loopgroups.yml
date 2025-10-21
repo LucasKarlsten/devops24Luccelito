@@ -1,0 +1,44 @@
+---
+- name: Create web users with correct groups
+  hosts: web
+  become: true
+
+  vars:
+    users:
+      - name: alovelace
+        groups: [wheel, audio, video]
+        gecos: "Ada Lovelace"
+        password: "$6$rounds=656000$mysecretsalt$kk8LQ.zLevstdGbiHuMsy1gQV1PbjG8RGODKw/.kduciEkm9V7PvqqMPsb5uOh8Wa.6P7RtJ4xPknzqkK8KjL1"
+
+      - name: aturing
+        groups: [tape]
+        gecos: "Alan Turing"
+        password: "$6$rounds=656000$mysecretsalt$kk8LQ.zLevstdGbiHuMsy1gQV1PbjG8RGODKw/.kduciEkm9V7PvqqMPsb5uOh8Wa.6P7RtJ4xPknzqkK8KjL1"
+
+      - name: edijkstra
+        groups: [tcpdump]
+        gecos: "Edsger W. Dijkstra"
+        password: "$6$rounds=656000$mysecretsalt$kk8LQ.zLevstdGbiHuMsy1gQV1PbjG8RGODKw/.kduciEkm9V7PvqqMPsb5uOh8Wa.6P7RtJ4xPknzqkK8KjL1"  
+      - name: ghopper
+        groups: [wheel, audio]
+        gecos: "Grace Hopper"
+        password: "$6$rounds=656000$mysecretsalt$kk8LQ.zLevstdGbiHuMsy1gQV1PbjG8RGODKw/.kduciEkm9V7PvqqMPsb5uOh8Wa.6P7RtJ4xPknzqkK8KjL1"
+
+  tasks:
+    - name: Ensure required groups exist
+      ansible.builtin.group:
+        name: "{{ item }}"
+        state: present
+      loop: "{{ users | map(attribute='groups') | flatten | unique | list }}"
+
+    - name: Create users with desired group membership and GECOS
+      ansible.builtin.user:
+        name: "{{ item.name }}"
+        state: present
+        comment: "{{ item.gecos | default(omit) }}"
+        groups: "{{ item.groups | join(',') }}"
+        password: "{{ item.password }}"
+        append: false     # enforce exact set each run
+        create_home: true
+      loop: "{{ users }}"
+

@@ -1,0 +1,9 @@
+
+# handlers file for roles/webserve
+---
+- name: Reload nginx
+  ansible.builtin.systemd:
+    name: nginx
+    state: reloaded
+    daemon_reload: true
+

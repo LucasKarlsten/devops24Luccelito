@@ -1,0 +1,55 @@
+---
+- name: Ensure nginx is installed
+  ansible.builtin.package:
+    name: nginx
+    state: present
+
+- name: Ensure nginx is enabled and running
+  ansible.builtin.service:
+    name: nginx
+    enabled: true
+    state: started
+
+- name: Copy HTTPS configuration
+  ansible.builtin.copy:
+    src: "{{ webserver_https_conf_src }}"
+    dest: /etc/nginx/conf.d/https.conf
+    owner: root
+    group: root
+    mode: "0644"
+    validate: "nginx -t -c %s"
+  notify: Reload nginx
+  register: https_conf_result
+
+- name: Copy vhost configuration
+  ansible.builtin.copy:
+    src: "{{ webserver_vhost_conf_src }}"
+    dest: "/etc/nginx/conf.d/{{ webserver_vhost }}.conf"
+    owner: root
+    group: root
+    mode: "0644"
+    validate: "nginx -t -c %s"
+  notify: Reload nginx
+  register: vhost_conf_result
+
+- name: Create document root (with SELinux context)
+  ansible.builtin.file:
+    path: "{{ webserver_docroot }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+    setype: "{{ webserver_selinux_type }}"
+    recurse: true
+
+- name: Upload index.html
+  ansible.builtin.copy:
+    src: "{{ webserver_index_src }}"
+    dest: "{{ webserver_docroot }}/index.html"
+    owner: root
+    group: root
+    mode: "0644"
+    setype: "{{ webserver_selinux_type }}"
+  notify: Reload nginx
+  register: index_result
+

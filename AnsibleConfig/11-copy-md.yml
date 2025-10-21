@@ -1,0 +1,29 @@
+---
+- name: Copy *.md files to deploy's home on DB hosts
+  hosts: db
+  become: true
+
+  vars:
+    deploy_home: /home/deploy
+    deploy_user: deploy
+    deploy_group: deploy
+
+  tasks:
+    - name: Ensure deploy home exists (optional safety)
+      ansible.builtin.file:
+        path: "{{ deploy_home }}"
+        state: directory
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_group }}"
+        mode: "0755"
+
+    - name: Copy all local Markdown files to deploy's home
+      ansible.builtin.copy:
+        src: "{{ item }}"
+        dest: "{{ deploy_home }}/"
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_group }}"
+        mode: "0644"
+      with_fileglob:
+        - "{{ playbook_dir }}/files/*.md"
+

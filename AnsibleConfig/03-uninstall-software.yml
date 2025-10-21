@@ -1,0 +1,16 @@
+---
+    - name: Install all our favorite software
+      hosts: all
+      tasks:
+        - name: Ensure vim, bash-completion, and qemu-guest-agent >
+          become: true
+          ansible.builtin.package:
+            name: vim,bash-completion,qemu-guest-agent
+            state: absent
+        - name: Debugging
+          ansible.builtin.debug:
+           msg: debugging
+
+        - name: Show ansible facts
+          ansible.builtin.debug:
+           var: ansible_facts

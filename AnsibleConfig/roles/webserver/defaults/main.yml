@@ -1,0 +1,13 @@
+---
+# defaults file for roles/webserver
+webserver_vhost: "example.internal"
+webserver_docroot: "/var/www/{{ webserver_vhost }}/html"
+
+# If SELinux is enabled, nginx needs to read these paths
+webserver_selinux_type: "httpd_sys_content_t"
+
+# Files shipped inside the role (place them under roles/webserver/files/)
+webserver_https_conf_src: "https.conf"
+webserver_vhost_conf_src: "example.internal.conf"
+webserver_index_src: "index.html"
+
