@@ -37,7 +37,7 @@
 
     - name: Upload files
       ansible.builtin.copy:
-        src: /home/luccelito/AnsibleConfig/files/index.html 
+        src: /home/luccelito/AnsibleConfig/files/index.html
         dest: /var/www/example.init/html
         owner: root
         group: root
