@@ -1,0 +1,139 @@
+---
+# 15-node_exporter.yml
+- name: Install and run Prometheus Node Exporter
+  hosts: all
+  become: true
+
+  vars:
+    ne_version: "1.8.1"   # change as needed
+    arch_map:
+      x86_64: amd64
+      aarch64: arm64
+      armv7l: armv7
+    ne_user: node_exporter
+    ne_bin_dir: /usr/local/bin
+    ne_bin_path: /usr/local/bin/node_exporter
+    ne_work_dir: /var/lib/node_exporter
+    ne_listen_address: "0.0.0.0:9100"
+    ne_service_name: node_exporter
+
+  tasks:
+    - name: Ensure node_exporter user exists (no shell, no login)
+      ansible.builtin.user:
+        name: "{{ ne_user }}"
+        system: true
+        shell: /sbin/nologin
+        home: "{{ ne_work_dir }}"
+        create_home: true
+
+    - name: Compute Go arch
+      ansible.builtin.set_fact:
+        ne_go_arch: "{{ arch_map[ansible_facts['architecture']] | default('amd64') }}"
+
+    - name: Create temp dir for download
+      ansible.builtin.tempfile:
+        state: directory
+        suffix: ne
+      register: ne_tmp
+
+    - name: Download node_exporter tarball
+      ansible.builtin.get_url:
+        url: "https://github.com/prometheus/node_exporter/releases/download/v{{ ne_version }}/node_exporter-{{ ne_version }}.linux-{{ ne_go_arch }}.tar.gz"
+        dest: "{{ ne_tmp.path }}/node_exporter.tar.gz"
+        mode: "0644"
+
+    - name: Unarchive tarball
+      ansible.builtin.unarchive:
+        src: "{{ ne_tmp.path }}/node_exporter.tar.gz"
+        dest: "{{ ne_tmp.path }}"
+        remote_src: true
+
+    - name: Install node_exporter binary
+      ansible.builtin.copy:
+        src: "{{ ne_tmp.path }}/node_exporter-{{ ne_version }}.linux-{{ ne_go_arch }}/node_exporter"
+        dest: "{{ ne_bin_path }}"
+        mode: "0755"
+        owner: root
+        group: root
+        remote_src: true
+      notify: restart node_exporter
+
+    - name: Create systemd unit
+      ansible.builtin.copy:
+        dest: "/etc/systemd/system/{{ ne_service_name }}.service"
+        mode: "0644"
+        owner: root
+        group: root
+        content: |
+          [Unit]
+          Description=Prometheus Node Exporter
+          Wants=network-online.target
+          After=network-online.target
+
+          [Service]
+          User={{ ne_user }}
+          Group={{ ne_user }}
+          Type=simple
+          ExecStart={{ ne_bin_path }} \
+            --web.listen-address={{ ne_listen_address }} \
+            --collector.textfile.directory={{ ne_work_dir }}/textfile
+          Restart=on-failure
+          RestartSec=5s
+          NoNewPrivileges=true
+          ProtectSystem=full
+          ProtectHome=true
+          PrivateTmp=true
+
+          [Install]
+          WantedBy=multi-user.target
+      notify:
+        - daemon-reload
+        - restart node_exporter
+
+    - name: Ensure textfile directory exists (optional collector)
+      ansible.builtin.file:
+        path: "{{ ne_work_dir }}/textfile"
+        state: directory
+        owner: "{{ ne_user }}"
+        group: "{{ ne_user }}"
+        mode: "0755"
+
+    - name: Enable and start node_exporter
+      ansible.builtin.systemd:
+        name: "{{ ne_service_name }}"
+        enabled: true
+        state: started
+        daemon_reload: true
+
+    # --- Firewall (firewalld) ---
+    - name: Ensure firewalld is installed
+      ansible.builtin.package:
+        name:
+          - firewalld
+          - python3-firewall
+        state: present
+
+    - name: Ensure firewalld is running
+      ansible.builtin.service:
+        name: firewalld
+        enabled: true
+        state: started
+
+    - name: Open Node Exporter port 9100/tcp
+      ansible.posix.firewalld:
+        port: 9100/tcp
+        state: enabled
+        permanent: true
+        immediate: true
+
+  handlers:
+    - name: daemon-reload
+      ansible.builtin.systemd:
+        daemon_reload: true
+
+    - name: restart node_exporter
+      ansible.builtin.systemd:
+        name: "{{ ne_service_name }}"
+        state: restarted
+
+
