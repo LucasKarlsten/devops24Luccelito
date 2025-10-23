@@ -57,6 +57,8 @@ It is up to you to implement the solution you feel works best.
 
 If you implement these tasks within one or more roles, you will gain enlightenment and additional karma.
 
+:: I am insanely enlightened after this
+
 # Resources
 
 For inspiration and as an example of an advanced project using Ansible for this, see for instance
