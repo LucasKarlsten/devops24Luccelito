@@ -1,69 +1,60 @@
 ---
-# 15-node_exporter.yml
-- name: Install and run Prometheus Node Exporter
+- name: Install and run Prometheus Node Exporter 
   hosts: all
   become: true
+  gather_facts: yes
 
   vars:
-    ne_version: "1.8.1"   # change as needed
-    arch_map:
-      x86_64: amd64
-      aarch64: arm64
-      armv7l: armv7
-    ne_user: node_exporter
-    ne_bin_dir: /usr/local/bin
-    ne_bin_path: /usr/local/bin/node_exporter
-    ne_work_dir: /var/lib/node_exporter
-    ne_listen_address: "0.0.0.0:9100"
-    ne_service_name: node_exporter
+    ne_version: "1.8.1"
 
   tasks:
-    - name: Ensure node_exporter user exists (no shell, no login)
+    - name: Determine Go arch from system arch
+      ansible.builtin.set_fact:
+        ne_arch: >-
+          {{ {'x86_64':'amd64','aarch64':'arm64','armv7l':'armv7'}[ansible_facts.architecture]
+             | default('amd64') }}
+
+    - name: Create node_exporter user (nologin)
       ansible.builtin.user:
-        name: "{{ ne_user }}"
+        name: node_exporter
         system: true
         shell: /sbin/nologin
-        home: "{{ ne_work_dir }}"
+        home: /var/lib/node_exporter
         create_home: true
 
-    - name: Compute Go arch
-      ansible.builtin.set_fact:
-        ne_go_arch: "{{ arch_map[ansible_facts['architecture']] | default('amd64') }}"
-
-    - name: Create temp dir for download
-      ansible.builtin.tempfile:
+    - name: Create install dir
+      ansible.builtin.file:
+        path: "/opt/node_exporter-{{ ne_version }}"
         state: directory
-        suffix: ne
-      register: ne_tmp
+        owner: root
+        group: root
+        mode: "0755"
 
     - name: Download node_exporter tarball
       ansible.builtin.get_url:
-        url: "https://github.com/prometheus/node_exporter/releases/download/v{{ ne_version }}/node_exporter-{{ ne_version }}.linux-{{ ne_go_arch }}.tar.gz"
-        dest: "{{ ne_tmp.path }}/node_exporter.tar.gz"
+        url: "https://github.com/prometheus/node_exporter/releases/download/v{{ ne_version }}/node_exporter-{{ ne_version }}.linux-{{ ne_arch }}.tar.gz"
+        dest: "/opt/node_exporter-{{ ne_version }}/node_exporter.tar.gz"
         mode: "0644"
 
-    - name: Unarchive tarball
+    - name: Unpack tarball
       ansible.builtin.unarchive:
-        src: "{{ ne_tmp.path }}/node_exporter.tar.gz"
-        dest: "{{ ne_tmp.path }}"
+        src: "/opt/node_exporter-{{ ne_version }}/node_exporter.tar.gz"
+        dest: "/opt/node_exporter-{{ ne_version }}"
         remote_src: true
+        creates: "/opt/node_exporter-{{ ne_version }}/node_exporter-{{ ne_version }}.linux-{{ ne_arch }}/node_exporter"
 
-    - name: Install node_exporter binary
-      ansible.builtin.copy:
-        src: "{{ ne_tmp.path }}/node_exporter-{{ ne_version }}.linux-{{ ne_go_arch }}/node_exporter"
-        dest: "{{ ne_bin_path }}"
-        mode: "0755"
-        owner: root
-        group: root
-        remote_src: true
+    - name: Symlink binary to /usr/local/bin/node_exporter
+      ansible.builtin.file:
+        src: "/opt/node_exporter-{{ ne_version }}/node_exporter-{{ ne_version }}.linux-{{ ne_arch }}/node_exporter"
+        dest: /usr/local/bin/node_exporter
+        state: link
+        force: true
       notify: restart node_exporter
 
     - name: Create systemd unit
       ansible.builtin.copy:
-        dest: "/etc/systemd/system/{{ ne_service_name }}.service"
+        dest: /etc/systemd/system/node_exporter.service
         mode: "0644"
-        owner: root
-        group: root
         content: |
           [Unit]
           Description=Prometheus Node Exporter
@@ -71,46 +62,29 @@
           After=network-online.target
 
           [Service]
-          User={{ ne_user }}
-          Group={{ ne_user }}
+          User=node_exporter
+          Group=node_exporter
           Type=simple
-          ExecStart={{ ne_bin_path }} \
-            --web.listen-address={{ ne_listen_address }} \
-            --collector.textfile.directory={{ ne_work_dir }}/textfile
+          ExecStart=/usr/local/bin/node_exporter --web.listen-address=0.0.0.0:9100
           Restart=on-failure
           RestartSec=5s
           NoNewPrivileges=true
-          ProtectSystem=full
-          ProtectHome=true
-          PrivateTmp=true
 
           [Install]
           WantedBy=multi-user.target
-      notify:
-        - daemon-reload
-        - restart node_exporter
+      notify: daemon-reload
 
-    - name: Ensure textfile directory exists (optional collector)
-      ansible.builtin.file:
-        path: "{{ ne_work_dir }}/textfile"
-        state: directory
-        owner: "{{ ne_user }}"
-        group: "{{ ne_user }}"
-        mode: "0755"
-
-    - name: Enable and start node_exporter
+    - name: Enable and start service
       ansible.builtin.systemd:
-        name: "{{ ne_service_name }}"
+        name: node_exporter
         enabled: true
         state: started
         daemon_reload: true
 
-    # --- Firewall (firewalld) ---
-    - name: Ensure firewalld is installed
+    # --- Firewall (only if using firewalld) ---
+    - name: Ensure firewalld and python bindings are present
       ansible.builtin.package:
-        name:
-          - firewalld
-          - python3-firewall
+        name: [firewalld, python3-firewall]
         state: present
 
     - name: Ensure firewalld is running
@@ -133,7 +107,6 @@
 
     - name: restart node_exporter
       ansible.builtin.systemd:
-        name: "{{ ne_service_name }}"
+        name: node_exporter
         state: restarted
-
 
