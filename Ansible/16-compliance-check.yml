@@ -1,0 +1,102 @@
+---
+# 16-compliance-check.yml
+- name: Simple CIS-style compliance checks (read-only)
+  hosts: all
+  become: true
+  gather_facts: yes
+
+  tasks:
+    - name: Gather installed package facts
+      ansible.builtin.package_facts:
+
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+
+    # 1) telnet-server NOT installed
+    - name: Assert telnet-server is absent
+      ansible.builtin.assert:
+        that: "'telnet-server' not in ansible_facts.packages"
+        fail_msg: "telnet-server package is installed"
+        success_msg: "telnet-server is not installed"
+
+    # 2) xinetd NOT installed
+    - name: Assert xinetd is absent
+      ansible.builtin.assert:
+        that: "'xinetd' not in ansible_facts.packages"
+        fail_msg: "xinetd package is installed"
+        success_msg: "xinetd is not installed"
+
+    # 3) tftp-server NOT installed
+    - name: Assert tftp-server is absent
+      ansible.builtin.assert:
+        that: "'tftp-server' not in ansible_facts.packages"
+        fail_msg: "tftp-server package is installed"
+        success_msg: "tftp-server is not installed"
+
+    # 4) firewalld package installed
+    - name: Assert firewalld package present
+      ansible.builtin.assert:
+        that: "'firewalld' in ansible_facts.packages"
+        fail_msg: "firewalld package is NOT installed"
+        success_msg: "firewalld package is installed"
+
+    # 5) firewalld enabled & running
+    - name: Assert firewalld service enabled and running
+      vars:
+        svc: "{{ ansible_facts.services['firewalld.service'] | default({}) }}"
+      ansible.builtin.assert:
+        that:
+          - svc.enabled | default(false)
+          - svc.state | default('') == 'running'
+        fail_msg: "firewalld.service not enabled/running (enabled={{ svc.enabled | default(false) }}, state={{ svc.state | default('unknown') }})"
+        success_msg: "firewalld.service is enabled and running"
+
+    # 6) chrony package installed
+    - name: Assert chrony package present
+      ansible.builtin.assert:
+        that: "'chrony' in ansible_facts.packages"
+        fail_msg: "chrony package is NOT installed"
+        success_msg: "chrony package is installed"
+
+    # 7) chronyd enabled & running
+    - name: Assert chronyd service enabled and running
+      vars:
+        svc: "{{ ansible_facts.services['chronyd.service'] | default({}) }}"
+      ansible.builtin.assert:
+        that:
+          - svc.enabled | default(false)
+          - svc.state | default('') == 'running'
+        fail_msg: "chronyd.service not enabled/running (enabled={{ svc.enabled | default(false) }}, state={{ svc.state | default('unknown') }})"
+        success_msg: "chronyd.service is enabled and running"
+
+    # 8) rsyslog enabled & running
+    - name: Assert rsyslog service enabled and running
+      vars:
+        svc: "{{ ansible_facts.services['rsyslog.service'] | default({}) }}"
+      ansible.builtin.assert:
+        that:
+          - svc.enabled | default(false)
+          - svc.state | default('') == 'running'
+        fail_msg: "rsyslog.service not enabled/running (enabled={{ svc.enabled | default(false) }}, state={{ svc.state | default('unknown') }})"
+        success_msg: "rsyslog.service is enabled and running"
+
+    # 9) auditd enabled & running
+    - name: Assert auditd service enabled and running
+      vars:
+        svc: "{{ ansible_facts.services['auditd.service'] | default({}) }}"
+      ansible.builtin.assert:
+        that:
+          - svc.enabled | default(false)
+          - svc.state | default('') == 'running'
+        fail_msg: "auditd.service not enabled/running (enabled={{ svc.enabled | default(false) }}, state={{ svc.state | default('unknown') }})"
+        success_msg: "auditd.service is enabled and running"
+
+    # 10) SELinux enabled (keep it simple)
+    - name: Assert SELinux is enabled
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.selinux is defined
+          - ansible_facts.selinux.status == 'enabled'
+        fail_msg: "SELinux is disabled"
+        success_msg: "SELinux is enabled"
+

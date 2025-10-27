@@ -57,7 +57,7 @@ It is up to you to implement the solution you feel works best.
 
 If you implement these tasks within one or more roles, you will gain enlightenment and additional karma.
 
-:: I am insanely enlightened after this
+:: My enlightenment is not high enough for this.
 
 # Resources
 
