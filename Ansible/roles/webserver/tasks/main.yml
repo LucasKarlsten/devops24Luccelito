@@ -17,9 +17,7 @@
     owner: root
     group: root
     mode: "0644"
-    validate: "nginx -t -c %s"
   notify: Reload nginx
-  register: https_conf_result
 
 - name: Copy vhost configuration
   ansible.builtin.copy:
@@ -28,9 +26,7 @@
     owner: root
     group: root
     mode: "0644"
-    validate: "nginx -t -c %s"
   notify: Reload nginx
-  register: vhost_conf_result
 
 - name: Create document root (with SELinux context)
   ansible.builtin.file:
@@ -51,5 +47,4 @@
     mode: "0644"
     setype: "{{ webserver_selinux_type }}"
   notify: Reload nginx
-  register: index_result
 

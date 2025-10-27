@@ -1,0 +1,50 @@
+---
+- name: Deploy nginx https.conf to web hosts
+  hosts: web
+  become: true
+
+  tasks:
+    - name: Install nginx
+      ansible.builtin.package:
+        name: nginx
+        state: present
+
+    - name: Ensure nginx is enabled and running
+      ansible.builtin.service:
+        name: nginx         # service name is usually 'nginx'
+        state: started
+        enabled: true
+
+    - name: Copy https.conf into place
+      ansible.builtin.copy:
+        src: files/https.conf
+        dest: /etc/nginx/conf.d/https.conf
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Restart nginx
+
+    - name: Restart nginx
+      ansible.builtin.service:
+        name: nginx
+        state: restarted
+
+    - name: Create a directory if it does not exist
+      ansible.builtin.file:
+        path: /var/www/example.init/html
+        state: directory
+        mode: '0755'
+
+    - name: Upload files
+      ansible.builtin.copy:
+        src: files/index.html
+        dest: /var/www/example.init/html
+        owner: root
+        group: root
+        mode: '0644'
+      register: result
+
+    - name: Debug
+      ansible.builtin.debug:
+        var: result
+
