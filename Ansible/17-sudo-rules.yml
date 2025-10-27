@@ -1,0 +1,28 @@
+---
+- name: Examination 17 
+  hosts: all
+  become: true
+  gather_facts: false
+
+  vars:
+    deploy_pw_hash: "$6$swPbAOHOrhfQ4PFJ$k88epo5tTtmQL0X5R/1WD/PriFbK.tfHr1p7ihcKpQtH70P21VRnJ.yF5Ao8JHijrvH3MmUsI2LzOJjvTP44u/"
+
+  tasks:
+    - name: Ensure deploy has a password set
+      ansible.builtin.user:
+        name: deploy
+        password: "{{ deploy_pw_hash }}"
+        update_password: always
+
+    - name: Require password for sudo (remove NOPASSWD)
+      ansible.builtin.lineinfile:
+        path: /etc/sudoers.d/deploy
+        create: true
+        owner: root
+        group: root
+        mode: "0440"
+        regexp: "^deploy\\s+ALL=\\(ALL\\).*"
+        line: "deploy ALL=(ALL) ALL"
+        validate: "visudo -cf %s"
+        backup: true
+
